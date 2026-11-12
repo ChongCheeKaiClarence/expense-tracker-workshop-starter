@@ -1,0 +1,3 @@
+- Browser-test UI changes before reporting them complete.
+- Don't commit until lint, tests and build pass.
+- Tests must catch breakage. Never weaken them just to make them pass.
