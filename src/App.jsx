@@ -204,6 +204,8 @@ function useBudgetState() {
     return prevStored || "";
   });
 
+  const [error, setError] = useState("");
+
   useEffect(() => {
     const key = getMonthKey();
     if (budget) {
@@ -215,13 +217,33 @@ function useBudgetState() {
 
   const handleBudgetChange = (e) => {
     const value = e.target.value;
+    if (!value) {
+      setBudgetState("");
+      setError("");
+      return;
+    }
+    const numValue = Number(value);
+    if (
+      !/^(?:\d+|\d*\.\d{1,2})$/.test(value) ||
+      !Number.isFinite(numValue) ||
+      numValue < 0.01 ||
+      numValue > 1_000_000
+    ) {
+      setError(
+        "Enter a budget from $0.01 to $1000000.00, with at most two decimal places.",
+      );
+      return;
+    }
     setBudgetState(value);
+    setError("");
   };
 
   return {
     budget,
     setBudgetState,
     handleBudgetChange,
+    error,
+    setError,
     budgetCents: budget ? Math.round(Number(budget) * 100) : 0,
   };
 }
@@ -262,17 +284,20 @@ function App() {
             <input
               id="budget"
               name="budget"
-              type="number"
+              type="text"
               placeholder="Budget"
-              min="0.01"
-              max="1000000"
-              step="0.01"
               value={budgetState.budget}
+              aria-describedby={budgetState.error ? "budget-error" : undefined}
               onChange={budgetState.handleBudgetChange}
             />
           </label>
-          {budgetState.budget && (
+          {budgetState.budget && !budgetState.error && (
             <p>Budget: {formatMoney(budgetState.budgetCents)}</p>
+          )}
+          {budgetState.error && (
+            <p className="error" id="budget-error" role="alert">
+              {budgetState.error}
+            </p>
           )}
         </div>
       </section>
