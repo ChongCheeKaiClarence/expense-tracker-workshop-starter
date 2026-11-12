@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 
 function createInitialTransactions() {
@@ -178,8 +178,57 @@ function useTransactionState() {
   };
 }
 
+function useBudgetState() {
+  const getMonthKey = (date = new Date()) => {
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+    return `budget-${year}-${month}`;
+  };
+
+  const getPreviousMonthKey = () => {
+    const now = new Date();
+    const prevMonth = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1),
+    );
+    return getMonthKey(prevMonth);
+  };
+
+  const [budget, setBudgetState] = useState(() => {
+    const key = getMonthKey();
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      return stored;
+    }
+    const prevKey = getPreviousMonthKey();
+    const prevStored = localStorage.getItem(prevKey);
+    return prevStored || "";
+  });
+
+  useEffect(() => {
+    const key = getMonthKey();
+    if (budget) {
+      localStorage.setItem(key, budget);
+    } else {
+      localStorage.removeItem(key);
+    }
+  }, [budget]);
+
+  const handleBudgetChange = (e) => {
+    const value = e.target.value;
+    setBudgetState(value);
+  };
+
+  return {
+    budget,
+    setBudgetState,
+    handleBudgetChange,
+    budgetCents: budget ? Math.round(Number(budget) * 100) : 0,
+  };
+}
+
 function App() {
   const transactionState = useTransactionState();
+  const budgetState = useBudgetState();
 
   return (
     <main className="app">
@@ -206,6 +255,25 @@ function App() {
           <p className="balance-amount">
             {formatMoney(transactionState.balanceCents)}
           </p>
+        </div>
+        <div className="summary-card">
+          <label htmlFor="budget">
+            Monthly budget
+            <input
+              id="budget"
+              name="budget"
+              type="number"
+              placeholder="Budget"
+              min="0.01"
+              max="1000000"
+              step="0.01"
+              value={budgetState.budget}
+              onChange={budgetState.handleBudgetChange}
+            />
+          </label>
+          {budgetState.budget && (
+            <p>Budget: {formatMoney(budgetState.budgetCents)}</p>
+          )}
         </div>
       </section>
 
